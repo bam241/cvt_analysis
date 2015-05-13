@@ -1,0 +1,28 @@
+%matplotlib inline
+# imports quantity vs time data from CSV file:
+#  Time, Quantity, Prototype
+#          
+# ./data/random_sink/sum_data.csv
+#
+# Convert Quantity into thruput, then plot.
+#
+import pandas as pd
+import matplotlib.pyplot as plt
+#pd.set_option('display.mpl_style', 'default')  # makes graphs prettier
+#figsize(15,5)
+
+filename = 'data/random_sink/sum_data.csv'
+
+raw_data = pd.read_csv(filename)
+
+print raw_data[' Quantity']
+print raw_data[:3]
+
+raw_data[' Quantity'].plot()
+
+time = []
+qty = []
+thruput = []
+last = 0
+
+LEU = raw_data[raw_data['Prototype'] == "LEU"]
