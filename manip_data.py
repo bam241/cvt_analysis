@@ -1,12 +1,14 @@
 import numpy as np
 import pandas as pd
 
-# imports quantity vs time data from CSV file:
-#  Time, Quantity, Prototype
-#          
-# ./data/random_sink/sum_data.csv
-#
+# wrapper to import Cyclist data and be back-compatible
 def import_data(filename, which_time) :
+    return import_data_cyclist(filename, whichtime)
+
+# imports inventory data from Cyclist output
+# (having plotted Time vs InventoryQty, filtered by Prototype)
+#  Time, Quantity, Prototype
+def import_data_cyclist(filename, which_time) :
     raw_data = pd.read_csv(filename)
 
     LEU = raw_data[raw_data['Prototype'] == "LEU"]
@@ -28,6 +30,15 @@ def import_data(filename, which_time) :
     covert_HEU_tp =  covert_HEU[' Quantity']- covert_HEU[' Quantity'].shift(1)
     
     return LEU_tp, delta_LEU_tp, covert_HEU_tp, time
+
+# import data from Cyan inventory format
+# (2 column Time, Qty, separated by 1+ whitespace)
+def import_data_cyan(filename) :
+    raw_data = pd.read_csv(filename,sep='\s+')
+    time = raw_data['Time']
+    tp = raw_data['Quantity'] - raw_data['Quantity'].shift(1)
+
+    return time, tp
 
 
 # Convert Quantity into thruput, then take FFT of output LEU

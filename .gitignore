@@ -1,4 +1,5 @@
 bad
 data
 *~
+*.pyc
 .ipynb_checkpoints/
