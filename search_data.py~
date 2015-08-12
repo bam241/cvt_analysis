@@ -1,5 +1,0 @@
-import sqlite3
-
-db = sqlite3.connect(':memory:')
-db = sqlite3.connect('data/random_sink/HEU03p_aq33_s05_swu180_t100_E5.sqlite')
-
