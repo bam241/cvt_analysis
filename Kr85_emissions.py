@@ -67,11 +67,16 @@ def calc_emissions(db, fac_info, mn):
     #released = {
     #		"17" : [0,1]   # for separations stream output
     #    }
+
+    DtoR = np.pi/180.
+    RtoD = 180./np.pi
     
     diffusion = 0.5 # m/s
     rows = 20
     cols = rows
-    
+    velocity = diffusion*1.5
+    v_theta = 45.*DtoR  # angle of wind
+
     inventory_frame = facility_input(db)
     n_times = inventory_frame['TimeCreated'].size
 
@@ -83,18 +88,30 @@ def calc_emissions(db, fac_info, mn):
         # from source and effective time delay
         pos_matrix = np.ndarray((rows,cols))
         pos_matrix.fill(0)
+        wind_time_delay = np.copy(pos_matrix)   # time delay due to wind
         pos_matrix[pos[0]][pos[1]] = 1
 
         for r in range(rows):
             for c in range(cols):
                 if (r == pos[0] and c == pos[1]):
                     dist = 0
+                    ang_src_det = 0
                 else:
-                    dist = math.sqrt((r - pos[0])**2 + (c - pos[1])**2)
+                    x = c - pos[1]
+                    y = r - pos[0]
+                    dist = math.sqrt(x**2. + y**2.)
+                    ang_src_det = np.arctan2(-1*y,x)
                 pos_matrix[r][c] = dist
+                if (np.abs(v_theta - ang_src_det) <= 90*DtoR):
+                    wind_time_delay[r][c] = -1*velocity
+                else:
+                    wind_time_delay[r][c] = velocity
+        # If I used a 1/e law instead, it would go here to calculate the
+        # fall off (ie fall_off = (1/v)*np.exp(-r*v)
+        # The time delay has to be calculated separately.
         fall_off_matrix = 1/((1+pos_matrix)**2)
-        time_delay_matrix = pos_matrix/diffusion
-
+        time_delay_matrix = pos_matrix/(diffusion + wind_time_delay)
+        
         # Add calculate the total signal at each grid point for each time for
         # each contributing emission source (facility)
         curr_emiss = inventory_frame[str(facility)]
@@ -105,8 +122,12 @@ def calc_emissions(db, fac_info, mn):
                 for r in range(rows):
                     for c in range(cols):
                         eff_time_delay = time_delay_matrix[r][c]
-                        if (t + eff_time_delay) < n_times: 
+                        # if time delay is negative, there is never emission at that
+                        # location
+                        if ((eff_time_delay >= 0) and
+                            ((t + eff_time_delay) < n_times)): 
                             tot_emiss[t+eff_time_delay][r][c] += eff_emiss[r][c]
+#    return tot_emiss, time_delay_matrix, wind_time_delay
     return tot_emiss
 
 def emissions_movie(db, ps, mn):
@@ -166,7 +187,7 @@ def emissions_movie(db, ps, mn):
         return cont
 
 #    fps=100.0   # rate to approx match mp4 playback
-    fps= 5
+    fps= 2
     anim=1
     if anim == 1:
         ax = fig.add_subplot(111)
