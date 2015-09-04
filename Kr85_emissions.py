@@ -130,6 +130,109 @@ def calc_emissions(db, fac_info, mn):
 #    return tot_emiss, time_delay_matrix, wind_time_delay
     return tot_emiss
 
+def proper_diffusion(db, fac_info, mn):
+    import math as m
+
+    DtoR = np.pi/180.
+    RtoD = 180./np.pi
+    
+    diffusion = 0.5 # m/s
+    rows = 20
+    cols = rows
+    velocity = diffusion*1.5  # defined to point along y-axis
+    v_theta = 0.0*DtoR
+    
+    inventory_frame = facility_input(db)
+    n_times = inventory_frame['TimeCreated'].size
+
+    tot_emiss = np.ndarray((n_times,rows,cols))
+    tot_emiss.fill(mn)
+    
+    # Calculate the dimensions of the plume for all time_elapsed
+    sigma_x = np.ndarray((n_times))
+    sigma_x.fill(0)
+    sigma_y = np.copy(sigma_x)
+
+    # all these times are in seconds, but our times are in days
+    # Constants for diffusion equations
+    # field values from Handbook on Atmospheric Diffusion (HAD)
+    # unless otherwise noted
+    dtos = 86400.0     # seconds in 24 hours
+    epsilon = 1.0e-4   # eddy dissipation rate (Ahmad_AIAA2012)
+    K_y = 5.0e4          # parallel diffusivity (HAD p43)
+    v_0 = 0.15         # 'lateral component' (m/s, HAD p43)
+    T_lv = 1.0e4       # LaGrangian turbulence timescale (s, HAD p43)
+    x_power = 0.5      # for times > T_lv (ie. all times of interest, HAD p42)
+
+    
+    for t_elapsed in range(n_times):
+        t_sec = t_elapsed*dtos
+        sigma_x[t_elapsed] = epsilon*(t_sec)**x_power
+        decay =  1.0 - m.exp(-1.0*t_sec/T_lv)
+        # break down equation for y component of plume:
+        rhs1 = t_sec/T_lv
+        rhs2 = decay
+        rhs3 = 0.5*(1. - (T_lv*(v_0**2.)/K_y))*(decay**2.)
+        sig_sq = 2*K_y*t_sec*(rhs1 - rhs2 - rhs2)
+        sigma_y[t_elapsed] = sig_sq**0.5
+    # Make a mask for whether each point is inside the ellipse
+        
+        
+    for facility, pos in fac_info.items():
+#        pos_matrix = np.ndarray((rows,cols))
+#        pos_matrix.fill(0)
+#        pos_matrix[pos[0]][pos[1]] = 1
+
+        local_density = np.ndarray((n_times,rows,cols))
+        local_density.fill(mn)
+#        ellipse_center = np.ndarray((n_times,2))
+        ang_src_origin = np.arctan2(pos[0],pos[1])
+        dist_src_origin = (pos[0]**2 + pos[1]**2)**0.5
+#        for t_elapsed in range(n_times):
+        dist_src_ctr = sigma_y + dist_src_origin
+        ellipse_x = pos[1] + sigma_y*np.cos(v_theta)
+        ellipse_y = pos[0] + sigma_y*np.sin(v_theta)
+#        ellipse_center[t_elapsed] = [y_center, x_center]
+#        print("t = ", t_elapsed, "  center: " , ellipse_center[t_elapsed])
+        for r in range(rows):
+            for c in range(cols):
+  #              if (r == pos[0] and c == pos[1]):
+  #                  dist = 0
+  #              else:
+  #                  x_len = c - pos[1]
+  #                  y_len = r - pos[0]
+  #                  dist = math.sqrt(x_len**2. + y_len**2.)
+  #             pos_matrix[r][c] = dist
+               # is each grid point inside the ellipse at each elapsed time?
+               for t_elapsed in range(n_times):
+                   x_ctr = ellipse_x[t_elapsed]
+                   y_ctr = ellipse_y[t_elapsed]
+                   big_X = ((pos[1] - x_ctr)*np.cos(v_theta) +
+                            (pos[0] - y_ctr)*np.sin(v_theta))
+                   big_Y = (-8.*(pos[1] - x_ctr)*np.sin(v_theta) +
+                            (pos[0] - y_ctr)*np.cos(v_theta))
+                   # if the point is inside the ellipse, calculate the
+                   # theoretical concentration at that x, y, t_elapsed
+                   if ((big_X/sigma_x[t_elapsed])**2 +
+                        (big_Y/sigma_y[t_elapsed])**2 <= 1):
+                       qty_x = np.exp(-0.5*((c - x_ctr)/sigma_y[t_elapsed])**2)
+                       qty_y = np.exp(-0.5*((r - y_ctr)/sigma_y[t_elapsed])**2)
+                       denom = 2*np.pi*(sigma_x[t_elapsed]*
+                                        sigma_[t_elapsed]*velocity)
+                       local_density[t_elapsed][r][c] = qty_x*qty_y/denom
+                       
+        # Iterate through each emission burst and add up all the after-effects
+        curr_emiss = inventory_frame[str(facility)]
+        for t in range(n_times):
+            src = curr_emiss[t]/dtos
+            if src > mn:
+                tmp_emiss = local_density
+
+        # Next figure out how to access all the matrix elements for time_elapsed that correespond
+        # to current time through end of simulation and add them to the total emission.
+        # I think this can be done as matrix manipulation rather than having to loop?
+    return t_sec, decay, rhs1, rhs2, rhs3, sig_sq, sigma_x, sigma_y, local_density
+
 def emissions_movie(db, ps, mn):
     import matplotlib
     import numpy as np
