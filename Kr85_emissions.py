@@ -68,10 +68,10 @@ def calc_emissions(db, fac_info, mn):
     #		"17" : [0,1]   # for separations stream output
     #    }
     
-    velocity = 0.6 # m/s
+    diffusion = 0.5 # m/s
     rows = 20
     cols = rows
-
+    
     inventory_frame = facility_input(db)
     n_times = inventory_frame['TimeCreated'].size
 
@@ -93,7 +93,7 @@ def calc_emissions(db, fac_info, mn):
                     dist = math.sqrt((r - pos[0])**2 + (c - pos[1])**2)
                 pos_matrix[r][c] = dist
         fall_off_matrix = 1/((1+pos_matrix)**2)
-        time_delay_matrix = pos_matrix/velocity
+        time_delay_matrix = pos_matrix/diffusion
 
         # Add calculate the total signal at each grid point for each time for
         # each contributing emission source (facility)
