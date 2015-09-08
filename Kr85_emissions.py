@@ -133,14 +133,10 @@ def calc_emissions(db, fac_info, mn):
 def proper_diffusion(db, fac_info, mn):
     import math as m
 
-    DtoR = np.pi/180.
-    RtoD = 180./np.pi
-    
-    diffusion = 0.5 # m/s
     rows = 20
     cols = rows
-    velocity = diffusion*5.  # defined to point along y-axis
-    v_theta = 0.0*DtoR
+    velocity = 1.5  # m/s defined to point along x-axis
+#    velocity = 5.0*(1.e-3)  # km/time
     
     inventory_frame = facility_input(db)
     n_times = inventory_frame['TimeCreated'].size
@@ -157,14 +153,22 @@ def proper_diffusion(db, fac_info, mn):
     # Constants for diffusion equations
     # field values from Handbook on Atmospheric Diffusion (HAD)
     # unless otherwise noted
-    dtos = 10.0
-#    dtos = 86400.0     # seconds in 24 hours
-    epsilon = 1.0e-4   # eddy dissipation rate (Ahmad_AIAA2012)
-    K_y = 5.0e4          # parallel diffusivity (HAD p43)
+    dtos = 10.0        # attempt to convert seconds to days, but didn't work.
+    epsilon = 1.0e-4   # eddy dissipation rate (m^2/s^3, Ahmad_AIAA2012)
+    K_y = 5.0e4          # parallel diffusivity (m^2/s, HAD p43)
     v_0 = 0.15         # 'lateral component' (m/s, HAD p43)
     T_lv = 1.0e4       # LaGrangian turbulence timescale (s, HAD p43)
     x_power = 1.5      # for times > T_lv (ie. all times of interest, HAD p42)
     const = 10.0
+
+    # My attempt at converting to km and making it proper.
+#    dtos = 1.0
+#    epsilon = (1.0e-4)*(1e-6)   # km^2/time
+#    K_y = (5.0e4)*(1e-6) # parallel diffusivity (km^2/time)
+#    v_0 = 0.15 *(1e-3) # km/time
+#    T_lv = 1.0e4       # time
+#    x_power = 1.5      # for times > T_lv (ie. all times of interest, HAD p42)
+#    const = 1.0       # order 1
     
     for t_elapsed in range(n_times):
         t_sec = t_elapsed*dtos
@@ -178,7 +182,7 @@ def proper_diffusion(db, fac_info, mn):
         sigma_x[t_elapsed] = sig_sq**0.5
 
      # Make a mask for whether each point is inside the ellipse
-     for facility, pos in fac_info.items():
+    for facility, pos in fac_info.items():
         emiss_scaling = np.ndarray((n_times,rows,cols))
         emiss_scaling.fill(0)
         for t_elapsed in range(n_times):
