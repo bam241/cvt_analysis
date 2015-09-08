@@ -139,7 +139,7 @@ def proper_diffusion(db, fac_info, mn):
     diffusion = 0.5 # m/s
     rows = 20
     cols = rows
-    velocity = diffusion*1.5  # defined to point along y-axis
+    velocity = diffusion*5.  # defined to point along y-axis
     v_theta = 0.0*DtoR
     
     inventory_frame = facility_input(db)
@@ -157,81 +157,58 @@ def proper_diffusion(db, fac_info, mn):
     # Constants for diffusion equations
     # field values from Handbook on Atmospheric Diffusion (HAD)
     # unless otherwise noted
-    dtos = 86400.0     # seconds in 24 hours
+    dtos = 10.0
+#    dtos = 86400.0     # seconds in 24 hours
     epsilon = 1.0e-4   # eddy dissipation rate (Ahmad_AIAA2012)
     K_y = 5.0e4          # parallel diffusivity (HAD p43)
     v_0 = 0.15         # 'lateral component' (m/s, HAD p43)
     T_lv = 1.0e4       # LaGrangian turbulence timescale (s, HAD p43)
-    x_power = 0.5      # for times > T_lv (ie. all times of interest, HAD p42)
-
+    x_power = 1.5      # for times > T_lv (ie. all times of interest, HAD p42)
+    const = 10.0
     
     for t_elapsed in range(n_times):
         t_sec = t_elapsed*dtos
-        sigma_x[t_elapsed] = epsilon*(t_sec)**x_power
+        sigma_y[t_elapsed] = const*epsilon*(t_sec**x_power)
         decay =  1.0 - m.exp(-1.0*t_sec/T_lv)
         # break down equation for y component of plume:
         rhs1 = t_sec/T_lv
         rhs2 = decay
         rhs3 = 0.5*(1. - (T_lv*(v_0**2.)/K_y))*(decay**2.)
-        sig_sq = 2*K_y*t_sec*(rhs1 - rhs2 - rhs2)
-        sigma_y[t_elapsed] = sig_sq**0.5
-    # Make a mask for whether each point is inside the ellipse
-        
-        
-    for facility, pos in fac_info.items():
-#        pos_matrix = np.ndarray((rows,cols))
-#        pos_matrix.fill(0)
-#        pos_matrix[pos[0]][pos[1]] = 1
+        sig_sq = 2*K_y*t_sec*(rhs1 - rhs2 - rhs3)
+        sigma_x[t_elapsed] = sig_sq**0.5
 
-        local_density = np.ndarray((n_times,rows,cols))
-        local_density.fill(mn)
-#        ellipse_center = np.ndarray((n_times,2))
-        ang_src_origin = np.arctan2(pos[0],pos[1])
-        dist_src_origin = (pos[0]**2 + pos[1]**2)**0.5
-#        for t_elapsed in range(n_times):
-        dist_src_ctr = sigma_y + dist_src_origin
-        ellipse_x = pos[1] + sigma_y*np.cos(v_theta)
-        ellipse_y = pos[0] + sigma_y*np.sin(v_theta)
-#        ellipse_center[t_elapsed] = [y_center, x_center]
-#        print("t = ", t_elapsed, "  center: " , ellipse_center[t_elapsed])
-        for r in range(rows):
-            for c in range(cols):
-  #              if (r == pos[0] and c == pos[1]):
-  #                  dist = 0
-  #              else:
-  #                  x_len = c - pos[1]
-  #                  y_len = r - pos[0]
-  #                  dist = math.sqrt(x_len**2. + y_len**2.)
-  #             pos_matrix[r][c] = dist
-               # is each grid point inside the ellipse at each elapsed time?
-               for t_elapsed in range(n_times):
-                   x_ctr = ellipse_x[t_elapsed]
-                   y_ctr = ellipse_y[t_elapsed]
-                   big_X = ((pos[1] - x_ctr)*np.cos(v_theta) +
-                            (pos[0] - y_ctr)*np.sin(v_theta))
-                   big_Y = (-8.*(pos[1] - x_ctr)*np.sin(v_theta) +
-                            (pos[0] - y_ctr)*np.cos(v_theta))
-                   # if the point is inside the ellipse, calculate the
-                   # theoretical concentration at that x, y, t_elapsed
-                   if ((big_X/sigma_x[t_elapsed])**2 +
-                        (big_Y/sigma_y[t_elapsed])**2 <= 1):
-                       qty_x = np.exp(-0.5*((c - x_ctr)/sigma_y[t_elapsed])**2)
-                       qty_y = np.exp(-0.5*((r - y_ctr)/sigma_y[t_elapsed])**2)
-                       denom = 2*np.pi*(sigma_x[t_elapsed]*
-                                        sigma_[t_elapsed]*velocity)
-                       local_density[t_elapsed][r][c] = qty_x*qty_y/denom
-                       
+     # Make a mask for whether each point is inside the ellipse
+     for facility, pos in fac_info.items():
+        emiss_scaling = np.ndarray((n_times,rows,cols))
+        emiss_scaling.fill(0)
+        for t_elapsed in range(n_times):
+            x_0 = pos[1] + sigma_x[t_elapsed]
+            y_0 = pos[0]
+            for r in range(rows):
+                for c in range(cols):
+                    big_X = (c - x_0)/sigma_x[t_elapsed]
+                    big_Y = (r - y_0)/sigma_y[t_elapsed]
+                    # if the point is inside the ellipse, calculate the
+                    # theoretical concentration at that x, y, t_elapsed
+                    if ((big_X**2. + big_Y**2.) <= 1.0):
+                        qty_x = np.exp(-0.5*((c - x_0)/sigma_x[t_elapsed])**2)
+                        qty_y = np.exp(-0.5*((r - y_0)/sigma_y[t_elapsed])**2)
+                        denom = 2*np.pi*(sigma_x[t_elapsed]*
+                                         sigma_y[t_elapsed]*velocity)
+                        emiss_scaling[t_elapsed][r][c] = qty_x*qty_y/denom
+                        emiss_scaling[emiss_scaling < mn] = 0
+                        emiss_scaling[np.isinf(emiss_scaling)] = 0
         # Iterate through each emission burst and add up all the after-effects
         curr_emiss = inventory_frame[str(facility)]
         for t in range(n_times):
-            src = curr_emiss[t]/dtos
+            src = curr_emiss[t]
             if src > mn:
-                tmp_emiss = local_density
-
-        # Next figure out how to access all the matrix elements for time_elapsed that correespond
-        # to current time through end of simulation and add them to the total emission.
-        # I think this can be done as matrix manipulation rather than having to loop?
-    return t_sec, decay, rhs1, rhs2, rhs3, sig_sq, sigma_x, sigma_y, local_density
+                tmp_emiss = src*emiss_scaling
+                t_max = (n_times - t)
+                # for each time elapsed since the puff
+                for delta_t in range(t_max):
+                    tot_emiss[t + delta_t] += tmp_emiss[delta_t]
+    return tot_emiss
 
 def emissions_movie(db, ps, mn):
     import matplotlib
@@ -248,12 +225,13 @@ def emissions_movie(db, ps, mn):
     matplotlib.rcParams['ytick.direction'] = 'out'
 
     fac_info = {
-        13 : [1,10],   # RG_Sep1
-        14 : [18,10],  # RG_Sep2
+        13 : [3,1],   # RG_Sep1
+        14 : [16,1],  # RG_Sep2
         15 : [9,10]    # WG_Sep
-        }
+    }
 
-    emissions = calc_emissions(db, fac_info, mn)
+#    emissions = calc_emissions(db, fac_info, mn)
+    emissions = proper_diffusion(db, fac_info, mn)
     n_times = emissions.shape[0]
     xmin = 0
     ymin = 0
@@ -267,13 +245,14 @@ def emissions_movie(db, ps, mn):
     fig = plt.figure()
     plt.xlabel('x location')
     plt.ylabel('y location')
-    min_em = np.log(np.amin(emissions, axis=2).min())
-    #max_em = np.amax(emissions, axis=2).max()
-    max_em = np.log(np.amax(emissions, axis=2).max())
-    n_lev = (max_em - min_em)/50
-    levels = np.arange(min_em, max_em, n_lev)
+    min_em = np.amin(emissions, axis=2).min()
+    min_log = 0 if (min_em == 0) else np.log(min_em)
+#    min_em = np.log(np.amin(emissions, axis=2).min())
+    max_log = np.log(np.amax(emissions, axis=2).max())
+    n_lev = (max_log - min_log)/50
+    levels = np.arange(min_log, max_log, n_lev)
     #levels = np.logspace(min_em, max_em+1, 20)
-
+    print("min : ", min_log, " max: ", max_log, n_lev)
     def make_frame(i):
         Z = emissions[i][:][:]
         plt.clf()
@@ -301,7 +280,7 @@ def emissions_movie(db, ps, mn):
         cont = plt.imshow(emissions[5][:][:], interpolation='bilinear',
                           origin='lower',
                           extent=(xmin-edge,xmax+edge,ymin-edge,ymax+edge))
-        CB = plt.colorbar(cont, shrink=0.8, extend='both', vmin=min_em, vmax=max_em)
+        CB = plt.colorbar(cont, shrink=0.8, extend='both', vmin=min_log, vmax=max_log)
 
 
     if ps != 0:
