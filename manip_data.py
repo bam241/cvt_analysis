@@ -3,7 +3,7 @@ import pandas as pd
 
 # wrapper to import Cyclist data and be back-compatible
 def import_data(filename, which_time) :
-    return import_data_cyclist(filename, whichtime)
+    return import_data_cyclist(filename, which_time)
 
 # imports inventory data from Cyclist output
 # (having plotted Time vs InventoryQty, filtered by Prototype)
