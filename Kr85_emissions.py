@@ -214,7 +214,7 @@ def proper_diffusion(db, fac_info, mn):
                     tot_emiss[t + delta_t] += tmp_emiss[delta_t]
     return tot_emiss
 
-def emissions_movie(db, ps, mn):
+def emissions_movie(db, ps, mn, frame):
     import matplotlib
     import numpy as np
     import matplotlib.cm as cm
@@ -274,31 +274,31 @@ def emissions_movie(db, ps, mn):
 
 #    fps=100.0   # rate to approx match mp4 playback
     fps= 2
-    anim=1
-    if anim == 1:
+    if (frame == 0):
         ax = fig.add_subplot(111)
         anim = animation.FuncAnimation(fig, make_frame, frames=n_times,
                                        repeat_delay=2000, interval=(1e3)/fps,
                                        blit=False) 
     else:
-        cont = plt.imshow(emissions[5][:][:], interpolation='bilinear',
-                          origin='lower',
-                          extent=(xmin-edge,xmax+edge,ymin-edge,ymax+edge))
-        CB = plt.colorbar(cont, shrink=0.8, extend='both', vmin=min_log, vmax=max_log)
+        anim = make_frame(frame)
 
-
-    if ps != 0:
+    if ps == 0:
+        plt.show()
+    else:
         #Set up formatting for the movie files
         data_path, data_file = os.path.split(db)
         if not data_path:
             outfile = ps
         else:
             outfile = data_path + '/' + ps
-        Writer = animation.writers['ffmpeg']
-        writer = Writer(fps=5, metadata=dict(artist='Me'), bitrate=1800)
-        anim.save(outfile, writer=writer)
-    else:
-        plt.show()
+        # if writing movie file
+        if frame == 0:
+            Writer = animation.writers['ffmpeg']
+            writer = Writer(fps=5, metadata=dict(artist='Me'), bitrate=1800)
+            anim.save(outfile, writer=writer)
+        #otherwise write single frame
+        else:
+            plt.savefig(outfile,bbox_inches='tight')
         
     return(anim)
 
