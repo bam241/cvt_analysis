@@ -247,8 +247,6 @@ def emissions_movie(db, ps, mn, frame):
     X, Y = np.meshgrid(x, y)
 
     fig = plt.figure()
-    plt.xlabel('x location')
-    plt.ylabel('y location')
     min_em = np.amin(emissions, axis=2).min()
     min_log = 0 if (min_em == 0) else np.log(min_em)
 #    min_em = np.log(np.amin(emissions, axis=2).min())
@@ -264,7 +262,9 @@ def emissions_movie(db, ps, mn, frame):
                             levels=levels,
     #                        norm=matplotlib.colors.LogNorm(),
                             extent=(xmin-edge,xmax+edge,ymin-edge,ymax+edge))
-        plt.title("Kr85 emissions, t="+ str(i))
+        plt.title("Smokestack Effluent, t="+ str(i))
+        plt.xlabel('X (km)')
+        plt.ylabel('Y (km)')
         CB = plt.colorbar(cont, shrink=0.8, extend='both')
     #                format='%.2f',ticks=[min_em, max_em])
     #                      format='%.2f',ticks=[np.log(min_em), np.log(max_em)])
