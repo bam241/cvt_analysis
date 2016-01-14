@@ -72,3 +72,39 @@ def trunc_flt(d,precision = 3) :
 
     return str(res)
 
+# Convert quantity shipped into shipping frequency, with sub-timestep
+# granularity
+# Input:
+#   filename: CYAN .dat inventory file, including absolute path
+#   ship_increment: quantity that constitutes one shipment (ie 100kg)
+# Return:
+#   ship_freq: list of time elapsed since last shipment
+#   qty_sum: remaining unshipped material at end of simulation
+#   csvfile: if defined then write the ship_freq to a csv file
+#
+def ship_freq(filename, ship_increment, csvfile='no') :
+    t_last = 0.
+    qty_sum = 0.
+    ship_intervals = []
+
+    time, tp= import_data_cyan(filename)
+
+    for i in range(len(tp)):  
+        if i != 0: 
+            qty_sum += tp[i]
+            if (qty_sum >= ship_increment):
+                delta_qty = qty_sum - ship_increment
+                frac = 1 - (delta_qty/tp[i])
+                t_report = (time[i-1] + frac) - t_last
+                ship_intervals.append(t_report)
+                t_last = time[i-1] + frac
+                qty_sum = delta_qty
+    
+    if csvfile != 'no':
+        import csv
+        with open(csvfile, 'wb') as output:
+            cw = csv.writer(output, delimiter= '\n')
+            for i in ship_intervals:
+                cw.writerow([i])
+
+    return ship_intervals, qty_sum
