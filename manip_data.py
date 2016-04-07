@@ -95,8 +95,8 @@ def ship_freq(filename, ship_increment, csvfile='no') :
             if (qty_sum >= ship_increment):
                 delta_qty = qty_sum - ship_increment
                 frac = 1 - (delta_qty/tp[i])
-                t_report = (time[i-1] + frac) - t_last
-                ship_intervals.append(t_report)
+                delta_t_report = (time[i-1] + frac) - t_last
+                ship_intervals.append(delta_t_report)
                 t_last = time[i-1] + frac
                 qty_sum = delta_qty
     
@@ -108,3 +108,39 @@ def ship_freq(filename, ship_increment, csvfile='no') :
                 cw.writerow([i])
 
     return ship_intervals, qty_sum
+
+
+# Convert quantity into unique shipments
+# Input:
+#   filename: CYAN .dat inventory file, including absolute path
+#   ship_increment: quantity that constitutes one shipment (ie 100kg)
+# Return:
+#   ship_freq: list of time elapsed since last shipment
+#   qty_sum: remaining unshipped material at end of simulation
+#   csvfile: if defined then write the ship_freq to a csv file
+#
+def ship_times(filename, ship_increment, csvfile='no') :
+    t_last = 0.
+    qty_sum = 0.
+    t_ship = []
+
+    time, tp= import_data_cyan(filename)
+
+    for i in range(len(tp)):  
+        if i != 0: 
+            qty_sum += tp[i]
+            if (qty_sum >= ship_increment):
+                delta_qty = qty_sum - ship_increment
+                frac = 1 - (delta_qty/tp[i])
+                t_last = time[i-1] + frac
+                t_ship.append(t_last)
+                qty_sum = delta_qty
+    
+    if csvfile != 'no':
+        import csv
+        with open(csvfile, 'wb') as output:
+            cw = csv.writer(output, delimiter= '\n')
+            for i in t_ship:
+                cw.writerow([i])
+
+    return t_ship, qty_sum
