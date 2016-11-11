@@ -119,46 +119,41 @@ def stages_per_cascade(alpha=1.0417, Nfc=0.007, Npc=0.03, Nwc=0.002):
 
 # *** UNTESTED ****
 # CAN ANY OF THIS BE DEFINED WITH CUT???
-def machines_per_enr_stage(alpha, del_U, Nfs, Npc, Pc):
+def machines_per_enr_stage(alpha, del_U, Nfs, Nps, Fs):
     # flows do not have required units so long as they are consistent
-    # Npc, Nwc, Nfc = enrichment of cascade product/waste/feed
     # Nfs, Nws, Nps = enrichment of stage product/waste/feed
-    # Pc = cascade product flow
     
     epsilon = alpha - 1.0
-
-    # F_stage = incoming flow (in Avery denoted with L_r)
-    # Avery p. 60
-    F_stage_enrich = 2*Pc*(Npc - Nfs)/(epsilon*Nfs*(1 - Nfs))
 
     # Feed flow of a single machine (in Avery denoted with L)
     # Avery p. 62
     F_machine = 2.0*del_U/(epsilon**2)
-
-    n_enrich = F_stage_enrich/F_machine
-
-    return n_enrich, F_stage_enrich
-
-def machines_per_strip_stage(alpha, Nfs, Npc, Nwc, Pc, Fc):
-    # flows do not have required units so long as they are consistent
-    # Npc, Nwc, Nfc = enrichment of cascade product/waste/feed
-    # Nfs, Nws, Nps = enrichment of stage product/waste/feed
-    # Pc = cascade product flow
-    
-    epsilon = alpha - 1.0
-    Wc = Fc - Pc
+    n_enrich = Fs/F_machine
 
     # F_stage = incoming flow (in Avery denoted with L_r)
     # Avery p. 60
-    F_stage_strip = 2*Wc*(Nfs - Nwc)/(epsilon*Nfs*(1 - Nfs)) 
+    # F_stage_enrich = 2*Ps*(Nps - Nfs)/(epsilon*Nfs*(1 - Nfs))
+    Ps_enrich = Fs*epsilon*Nfs*(1 - Nfs)/(2*(Nps - Nfs))
 
+    return n_enrich, Ps_enrich
+
+def machines_per_strip_stage(alpha, del_U, Nfs, Fs, Ws):
+    # flows do not have required units so long as they are consistent
+
+    epsilon = alpha - 1.0
+    
     # Feed flow of a single machine (in Avery denoted with L)
     # Avery p. 62
     F_machine = 2.0*del_U/(epsilon**2)
+    n_strip = Fs/F_machine
 
-    n_strip = F_stage_strip/F_machine
+    # F_stage = incoming flow (in Avery denoted with L_r)
+    # Avery p. 60
+    #F_stage_strip = 2*Ws*(Nfs - Nws)/(epsilon*Nfs*(1 - Nfs)) 
+    #W_stage_strip = Fs*epsilon*Nfs*(1 - Nfs)/(2*(Nfs - Nws))
+    Nws = Nfs - (epsilon*Fs*F_machine*Nfs*(1 - Nfs)/(2*Ws))
 
-    return  n_strip, F_stage_strip
+    return  n_strip, Nws
 
 
 def delta_U_cascade(Npc, Nwc, Fc, Pc):
