@@ -9,8 +9,6 @@ M = 0.352 # kg/mol of UF6
 
 # Centrifuge assumptions
 x = 1000 # pressure ratio (Glaser)
-T = 320.0   # K
-cut = 0.50
 k = 2.0  # L/F ratio
 
 # Centrifuge parameters
@@ -20,7 +18,7 @@ k = 2.0  # L/F ratio
 #F_m = 15e-6 # kg/s (paper is in mg/s)
 
 
-def calc_del_U(v_a, Z, d, F_m):
+def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0):
     a = d/2.0 # outer radius
     r_2 = 0.99*a  # fraction of a
     
@@ -42,7 +40,7 @@ def calc_del_U(v_a, Z, d, F_m):
     A_w = C1 * (1.0/F_m) * ((1.0 - cut)/(L_F*(1.0 - cut + L_F)))
 
     C_flow = 0.5*F_m*cut*(1.0 - cut)
-    C_therm = calc_C_therm(v_a)
+    C_therm = calc_C_therm(v_a, T)
 
     C_scale = ((r_2/a)**4)*((1-(r_12**2))**2)
     bracket1 = (1 + L_F)/cut
@@ -53,7 +51,7 @@ def calc_del_U(v_a, Z, d, F_m):
     # Glaser eqn 10
     major_term = 0.5*cut*(1.0 - cut)*(C_therm**2)*C_scale*(
                 (bracket1*(1 - exp1)) + (bracket2*(1 - exp2)))**2 # kg/s    
-    del_U = F_m*major_term #kg/s
+    del_U = F_m*major_term*eff #kg/s
     
     per_sec2yr = 60*60*24*365.25 # s/m * m/hr * hr/d * d/y
 
@@ -62,15 +60,12 @@ def calc_del_U(v_a, Z, d, F_m):
     del_U_yr = del_U * per_sec2yr
 
     # Avery p.18
-    # del_U in moles/sec
-    del_U_moles = del_U/M
-    alpha = alpha_by_swu(del_U, F_m)
-    #1 + np.sqrt((2*del_U_moles*(1-cut)/(cut*F_m)))
+    alpha = alpha_by_swu(del_U, F_m, cut)
     
-    return alpha, del_U, del_U_yr
+    return alpha, del_U, del_U_yr  #kg/sec
 
 # for a machine
-def calc_C_therm(v_a):
+def calc_C_therm(v_a, T):
     C_therm = (dM * (v_a**2))/(2.0 * R * T)
     return C_therm
 
@@ -79,7 +74,7 @@ def calc_V(N_in):
     return V_out
 
 # for a machine
-def alpha_by_swu(del_U, F_m):
+def alpha_by_swu(del_U, F_m, cut):
     # Avery p.18
     # del_U in moles/sec
     del_U_moles = del_U/M
@@ -94,20 +89,26 @@ def alpha_by_enrich(Nf, Np):
     return alpha_enr
 
 # for a machine
-def alpha_max_theory(v_a, Z, d):
+def alpha_max_theory(v_a, Z, d, T):
     # Avery p36
     # Max theoretical separation for zero withdrawal
-    C_therm = calc_C_therm(v_a)
+    C_therm = calc_C_therm(v_a, T)
     alpha_th = np.exp(np.sqrt(2)*C_therm*Z/d)
 
 # for a machine
-def product_by_alpha(alpha, Nfm):
+def N_product_by_alpha(alpha, Nfm):
     ratio = (1.0 - Nfm)/(alpha*Nfm)
     Npm = 1.0/(ratio + 1.0)
     return Npm
 
+# for a machine
+# Avery p.59
+def N_waste_by_alpha(alpha, Nfm):
+    A = (Nfm/(1-Nfm))/alpha
+    Nwm = A/(1+A)
+    return Nwm
     
-def stages_per_cascade(alpha=1.0417, Nfc=0.007, Npc=0.03, Nwc=0.002):
+def stages_per_cascade(alpha, Nfc, Npc, Nwc):
     epsilon = alpha - 1.0
     enrich_inner = (Npc/(1.0 - Npc))*((1.0 - Nfc)/Nfc)
     strip_inner =  (Nfc/(1.0 - Nfc))*((1.0 - Nwc)/Nwc)
@@ -117,8 +118,7 @@ def stages_per_cascade(alpha=1.0417, Nfc=0.007, Npc=0.03, Nwc=0.002):
 
     return enrich_stages, strip_stages
 
-# *** UNTESTED ****
-# CAN ANY OF THIS BE DEFINED WITH CUT???
+
 def machines_per_enr_stage(alpha, del_U, Nfs, Nps, Fs):
     # flows do not have required units so long as they are consistent
     # Nfs, Nws, Nps = enrichment of stage product/waste/feed
@@ -132,12 +132,11 @@ def machines_per_enr_stage(alpha, del_U, Nfs, Nps, Fs):
 
     # F_stage = incoming flow (in Avery denoted with L_r)
     # Avery p. 60
-    # F_stage_enrich = 2*Ps*(Nps - Nfs)/(epsilon*Nfs*(1 - Nfs))
     Ps_enrich = Fs*epsilon*Nfs*(1 - Nfs)/(2*(Nps - Nfs))
 
     return n_enrich, Ps_enrich
 
-def machines_per_strip_stage(alpha, del_U, Nfs, Fs, Ws):
+def machines_per_strip_stage(alpha, del_U, Nfs, Nws, Fs):
     # flows do not have required units so long as they are consistent
 
     epsilon = alpha - 1.0
@@ -149,12 +148,9 @@ def machines_per_strip_stage(alpha, del_U, Nfs, Fs, Ws):
 
     # F_stage = incoming flow (in Avery denoted with L_r)
     # Avery p. 60
-    #F_stage_strip = 2*Ws*(Nfs - Nws)/(epsilon*Nfs*(1 - Nfs)) 
-    #W_stage_strip = Fs*epsilon*Nfs*(1 - Nfs)/(2*(Nfs - Nws))
-    Nws = Nfs - (epsilon*Fs*F_machine*Nfs*(1 - Nfs)/(2*Ws))
+    W_strip = Fs*epsilon*Nfs*(1 - Nfs)/(2*(Nfs - Nws))
 
-    return  n_strip, Nws
-
+    return  n_strip, W_strip
 
 def delta_U_cascade(Npc, Nwc, Fc, Pc):
     Vpc = calc_V(Npc)
@@ -177,5 +173,3 @@ def del_U_by_cascade_config(Npc, Nwc, Pc, Wc, n_cf):
 
     return del_U_machine
 
-### NOW USE A PROGRAM TO CALCULARE # stages, number of machines,
-####then del_U per machine
