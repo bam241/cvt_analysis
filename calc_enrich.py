@@ -18,7 +18,7 @@ k = 2.0  # L/F ratio
 #F_m = 15e-6 # kg/s (paper is in mg/s)
 
 
-def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0):
+def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0, verbose=False):
     a = d/2.0 # outer radius
     r_2 = 0.99*a  # fraction of a
     
@@ -31,8 +31,10 @@ def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0):
     L_F = k  #range 2-4
     Z_p = Z*(1.0 - cut)*(1.0 + L_F)/(1.0 - cut + L_F)
 
-    print "L_F= ", L_F
-    print "Z_p=  ", Z_p
+    if (verbose == True):
+        print "L_F= ", L_F
+        print "Z_p=  ", Z_p
+        print "r_12", r_12
 
     # Glaser eqn 3
     C1 = (2.0*np.pi*D_rho/(np.log(r_2/r_1)))
@@ -182,9 +184,10 @@ def delta_U_cascade(Npc, Nwc, Fc, Pc):
 
     return delta_U_cascade
 
-def machines_per_cascade(del_U_machine, Npc, Nwc, Pc, Wc):
+# DOUBLE CHECK THIS EQN!!
+def machines_per_cascade(del_U_machine, Npc, Nwc, Fc, Pc):
     # Avery p 62
-    U_cascade = delta_U_cascade(Npc, Nwc, Pc, Wc)
+    U_cascade = delta_U_cascade(Npc, Nwc, Fc, Pc)
     n_cf = U_cascade/del_U_machine
 
     return n_cf
