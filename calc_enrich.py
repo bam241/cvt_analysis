@@ -107,7 +107,8 @@ def N_waste_by_alpha(alpha, Nfm):
     A = (Nfm/(1-Nfm))/alpha
     Nwm = A/(1+A)
     return Nwm
-    
+
+# Avery ???
 def stages_per_cascade(alpha, Nfc, Npc, Nwc):
     epsilon = alpha - 1.0
     enrich_inner = (Npc/(1.0 - Npc))*((1.0 - Nfc)/Nfc)
@@ -118,8 +119,20 @@ def stages_per_cascade(alpha, Nfc, Npc, Nwc):
 
     return enrich_stages, strip_stages
 
+# derived from Avery ??
+def Npc_from_Nstages(alpha, Nfc, enrich_stages):
+    epsilon = alpha - 1.0
+    A = (Nfc/(1 - Nfc))*np.exp(enrich_stages*epsilon)
+    Npc = A/(1 + A)
+    return Npc
+    
+def Nwc_from_Nstages(alpha, Nfc, strip_stages):
+    epsilon = alpha - 1.0
+    B = ((1 - Nfc)/Nfc)*np.exp(strip_stages*epsilon)
+    Nwc = 1/(1 + B)
+    return Nwc
 
-def machines_per_enr_stage(alpha, del_U, Nfs, Nps, Fs):
+def machines_per_enr_stage(alpha, del_U, Fs):
     # flows do not have required units so long as they are consistent
     # Nfs, Nws, Nps = enrichment of stage product/waste/feed
     
@@ -129,14 +142,18 @@ def machines_per_enr_stage(alpha, del_U, Nfs, Nps, Fs):
     # Avery p. 62
     F_machine = 2.0*del_U/(epsilon**2)
     n_enrich = Fs/F_machine
+    return n_enrich
+
+def product_per_enr_stage(alpha, Nfs, Nps, Fs):
+    epsilon = alpha - 1.0
 
     # F_stage = incoming flow (in Avery denoted with L_r)
     # Avery p. 60
     Ps_enrich = Fs*epsilon*Nfs*(1 - Nfs)/(2*(Nps - Nfs))
 
-    return n_enrich, Ps_enrich
+    return Ps_enrich
 
-def machines_per_strip_stage(alpha, del_U, Nfs, Nws, Fs):
+def machines_per_strip_stage(alpha, del_U, Fs):
     # flows do not have required units so long as they are consistent
 
     epsilon = alpha - 1.0
@@ -146,11 +163,16 @@ def machines_per_strip_stage(alpha, del_U, Nfs, Nws, Fs):
     F_machine = 2.0*del_U/(epsilon**2)
     n_strip = Fs/F_machine
 
+    return n_strip
+    
+def waste_per_strip_stage(alpha, Nfs, Nws, Fs):
+    epsilon = alpha - 1.0
+
     # F_stage = incoming flow (in Avery denoted with L_r)
     # Avery p. 60
     W_strip = Fs*epsilon*Nfs*(1 - Nfs)/(2*(Nfs - Nws))
 
-    return  n_strip, W_strip
+    return  W_strip
 
 def delta_U_cascade(Npc, Nwc, Fc, Pc):
     Vpc = calc_V(Npc)
