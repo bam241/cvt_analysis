@@ -3,12 +3,15 @@ import pandas as pd
 
 
 def get_data(file):
-    countries=np.genfromtxt(file, delimiter="\t", usecols=0, dtype=str, skip_header=1)
+    n_header = 2
+    countries=np.genfromtxt(file, delimiter="\t", usecols=0, dtype=str,
+                            skip_header=n_header)
     raw_data=np.genfromtxt(file, delimiter="\t", usecols=(1,2,3,4,5,6,7,8),
-                           skip_header=1)
+                           skip_header=n_header)
 
     # now get column names (how is there not a better way?)
-    tmp=np.genfromtxt(file, delimiter="\t", usecols=(1,2,3,4,5,6,7,8),names=True)
+    tmp=np.genfromtxt(file, delimiter="\t", usecols=(1,2,3,4,5,6,7,8),
+                      names=True, skip_header=n_header-1)
     col_names=tmp.dtype.names
 
     return countries, col_names, raw_data
@@ -86,40 +89,58 @@ def get_nws():
 
 # States that pursued and their pursuit date
 # (from google doc: Main Prolif Spreadsheet, Dec-5-2016)
-def get_prolifs():
-    prolifs = {}
-    prolifs["Argentina"] = 1978
-    prolifs["Australia"] = 1961
-    prolifs["Brazil"] = 1978
-    prolifs["China"] = 1955
-    prolifs["Egypt"] = 1965
-    prolifs["France"] = 1954
-    prolifs["India"] = 1964
-    prolifs["Iran"] = 1985
-    prolifs["Iraq"] = 1983
-    prolifs["Israel"] = 1960
-    prolifs["Libya"] = 1970
-    prolifs["North Korea"] = 1980
-    prolifs["South Korea"] = 1970
-    prolifs["Pakistan"] = 1972
-    prolifs["South Africa"] = 1974
-    prolifs["Syria"] = 2000
-    prolifs["United Kingdom"] = 1947
-    prolifs["United States"] = 1939
-    prolifs["USSR"] = 1945
+def get_pursue():
+    pursues = {}
+    pursues["Argentina"] = 1978
+    pursues["Australia"] = 1961
+    pursues["Brazil"] = 1978
+    pursues["China"] = 1955
+    pursues["Egypt"] = 1965
+    pursues["France"] = 1954
+    pursues["India"] = 1964
+    pursues["Iran"] = 1985
+    pursues["Iraq"] = 1983
+    pursues["Israel"] = 1960
+    pursues["Libya"] = 1970
+    pursues["North Korea"] = 1980
+    pursues["South Korea"] = 1970
+    pursues["Pakistan"] = 1972
+    pursues["South Africa"] = 1974
+    pursues["Syria"] = 2000
+    pursues["United Kingdom"] = 1947
+    pursues["United States"] = 1939
+    pursues["USSR"] = 1945
 
-    return prolifs
-
+    return pursues
 
 # From a matched pair of numpy arrays containing countries and their pursuit scores,
 # make a new array of the pursuit scores for countries that succeeded
 def get_prolif_pe(countries, pes):
     prolif_pes = []
-
-    proliferants = get_prolifs()
+    prolif_st = []
+    proliferants = get_prolif()
     for i in range(len(countries)):
         curr_state = countries[i]
         if curr_state in proliferants:
             prolif_pes.append(pes[i])
+            prolif_st.append(curr_state)
+    return(prolif_st, prolif_pes)
 
-    return(prolif_pes)
+# From a matched pair of numpy arrays containing countries and their pursuit
+# scores, make a new array of the scores for the subset of countries that
+# actually chose to pursue and/or succeeded
+def get_pes(all_countries, pes, status):
+    pursue_pes = []
+    pursue_st = []
+    if (status == "Pursue"):
+        states = get_pursue()
+    elif (status == "Prolif"):
+        states = get_nws()
+    else:
+        return "DO YOU WANT PURSUIT OR PROLIFERANTS?"
+    for i in range(len(all_countries)):
+        curr_state = all_countries[i]
+        if curr_state in states:
+            pursue_pes.append(pes[i])
+            pursue_st.append(curr_state)
+    return(pursue_st, pursue_pes)
