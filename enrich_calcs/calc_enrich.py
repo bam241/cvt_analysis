@@ -34,6 +34,7 @@ def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0, verbose=False):
     if (verbose == True):
         print "L_F= ", L_F
         print "Z_p=  ", Z_p
+        print "r_1", r_1
         print "r_12", r_12
 
     # Glaser eqn 3
