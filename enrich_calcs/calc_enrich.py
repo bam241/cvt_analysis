@@ -111,7 +111,7 @@ def N_waste_by_alpha(alpha, Nfm):
     Nwm = A/(1+A)
     return Nwm
 
-# Avery ???
+# Avery p.59
 def stages_per_cascade(alpha, Nfc, Npc, Nwc):
     epsilon = alpha - 1.0
     enrich_inner = (Npc/(1.0 - Npc))*((1.0 - Nfc)/Nfc)
