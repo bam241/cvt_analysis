@@ -147,6 +147,14 @@ def machines_per_enr_stage(alpha, del_U, Fs):
     n_enrich = Fs/F_machine
     return n_enrich
 
+# assuming feed into machines is already at its maximum,
+# total throughput is limited by number of available machines
+# (in a system where there are insufficient total machines)
+def allowed_feed_per_stage(alpha, del_U, n_mach):
+    max_feed = (n_mach*2*del_U)/((alpha - 1)**2)
+    return max_feed
+
+
 def product_per_enr_stage(alpha, Nfs, Nps, Fs):
     epsilon = alpha - 1.0
 
