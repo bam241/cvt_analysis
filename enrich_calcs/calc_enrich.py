@@ -193,7 +193,6 @@ def delta_U_cascade(Npc, Nwc, Fc, Pc):
 
     return delta_U_cascade
 
-# DOUBLE CHECK THIS EQN!!
 def machines_per_cascade(del_U_machine, Npc, Nwc, Fc, Pc):
     # Avery p 62
     U_cascade = delta_U_cascade(Npc, Nwc, Fc, Pc)
@@ -207,3 +206,25 @@ def del_U_by_cascade_config(Npc, Nwc, Pc, Wc, n_cf):
 
     return del_U_machine
 
+# Determines the total feed flow rates required at each stage
+# of the cascade for steady-state flow
+def calc_feed_flows(n_stages_enrich, n_stages_strip, cascade_feed, cut):
+    n_stages = n_stages_strip + n_stages_enrich
+
+    eqn_answers = np.zeros(n_stages)
+    for i in range(-1*n_stages_strip, n_stages_enrich):
+        eqn = np.zeros(n_stages)
+        position = n_stages_strip + i
+        eqn[position] = -1
+        if (position != 0):
+            eqn[position - 1] = cut
+        if (position != n_stages - 1):
+            eqn[position + 1] = (1-cut)
+        if (position == 0):
+            eqn_array = eqn
+        else:
+            eqn_array = np.vstack((eqn_array,eqn))
+        if (i == 0):
+            eqn_answers[position] = -1*cascade_feed
+
+    return np.linalg.solve(eqn_array, eqn_answers)
