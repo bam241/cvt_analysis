@@ -99,9 +99,12 @@ def alpha_max_theory(v_a, Z, d, T):
     alpha_th = np.exp(np.sqrt(2)*C_therm*Z/d)
 
 # for a machine
+# Avery p. 57
 def N_product_by_alpha(alpha, Nfm):
-    ratio = (1.0 - Nfm)/(alpha*Nfm)
-    Npm = 1.0/(ratio + 1.0)
+#    ratio = (1.0 - Nfm)/(alpha*Nfm)
+#    Npm = 1.0/(ratio + 1.0)
+    ratio = alpha*Nfm/(1.0 - Nfm)
+    Npm = ratio/(1+ratio)
     return Npm
 
 # for a machine
