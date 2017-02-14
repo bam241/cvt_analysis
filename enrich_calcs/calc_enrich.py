@@ -114,6 +114,9 @@ def N_waste_by_alpha(alpha, Nfm):
     Nwm = A/(1+A)
     return Nwm
 
+## This equation can only be used in the limit where the separation factor
+## (alpha) is very close to one, which is not true for modern gas centrifuges
+## DO NOT USE THIS EQUATION!!!
 # Avery p.59
 def stages_per_cascade(alpha, Nfc, Npc, Nwc):
     epsilon = alpha - 1.0
@@ -167,6 +170,10 @@ def product_per_enr_stage(alpha, Nfs, Nps, Fs):
 
     return Ps_enrich
 
+## 14-Feb-2017
+## although in Avery this eqn depends on waste_per_strip_stage, which is
+## wrong, I have implemented it based only on ratio of total stage flow
+## to machine flow, so it is correct
 def machines_per_strip_stage(alpha, del_U, Fs):
     # flows do not have required units so long as they are consistent
 
@@ -178,7 +185,10 @@ def machines_per_strip_stage(alpha, del_U, Fs):
     n_strip = Fs/F_machine
 
     return n_strip
-    
+
+## 14-Feb-2017
+## THIS EQN PRODUCES THE WRONG RESULT FOR SOME REASON.
+## DONT KNOW WHAT THE PROBLEM IS THOUGH
 def waste_per_strip_stage(alpha, Nfs, Nws, Fs):
     epsilon = alpha - 1.0
 
