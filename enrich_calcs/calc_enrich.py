@@ -241,3 +241,83 @@ def calc_feed_flows(n_stages_enrich, n_stages_strip, cascade_feed, cut):
             eqn_answers[position] = -1*cascade_feed
 
     return np.linalg.solve(eqn_array, eqn_answers)
+
+def find_N_stages(alpha, feed_assay, product_assay, waste_assay):
+    ideal_enrich_stage = 0
+    ideal_strip_stage = 0
+    Nfs = feed_assay
+    Nps = feed_assay
+    
+    while (Nps < product_assay):
+        Nps = N_product_by_alpha(alpha, Nfs)
+        if (ideal_enrich_stage == 0):
+            Nws = N_waste_by_alpha(alpha, Nfs)
+        ideal_enrich_stage +=1
+        Nfs = Nps
+
+    Nfs = Nws
+    while (Nws > waste_assay):
+        Nws = N_waste_by_alpha(alpha, Nfs)
+        ideal_strip_stage += 1
+        Nfs = Nws
+
+    return ideal_enrich_stage, ideal_strip_stage
+
+def design_cascade(alpha, del_U, Nfc, Npc, Nwc, feed_flows,
+                      assay_len=4, qty_len=6, verbose=False, pretty=False):
+    ideal_enrich_stage, ideal_strip_stage = find_N_stages(alpha, Nfc, Npc, Nwc)
+
+    # For verbose only, make print statements in useful units
+    if (pretty == True):
+        fix = 30.4*24*60*60  # convert from kg/sec to kg/mon
+        qty_len = 2
+    else:
+        fix = 1 # all flows are same units as input feed_flows
+        
+    if (verbose == True):
+        print "Stage   #Mach\t Feed    Product  Waste\t F_assay \tP_assay W_assay"
+
+    n_centrifuges = 0
+    Nfs = Nfc
+    all_stages = []
+    for stage_idx in range(ideal_enrich_stage):
+        curr_stage = stage_idx + ideal_strip_stage
+        Fs = feed_flows[curr_stage]
+        n_mach_enr = round(machines_per_enr_stage(alpha, del_U, Fs))
+        Nps = N_product_by_alpha(alpha, Nfs)
+        Ps = product_per_enr_stage(alpha, Nfs, Nps, Fs)
+        Ws = Fs - Ps
+        Nws = N_waste_by_alpha(alpha, Nfs)
+        all_stages.append([stage_idx, n_mach_enr, round(Fs, qty_len), 
+                           round(Ps, qty_len), round(Ws, qty_len),
+                           round(Nfs, assay_len), round(Nps, assay_len),
+                           round(Nws, assay_len)])
+        n_centrifuges += n_mach_enr
+        if (stage_idx == 0):
+            Nw_1 = Nws
+
+        if (verbose == True):
+            print stage_idx, "\t", n_mach_enr,"\t", round(Fs*fix,qty_len), "  ",round(Ps*fix, qty_len), "  ",round(Ws*fix, qty_len),"  ", round(Nfs, assay_len), "\t",round(Nps, assay_len),"\t", round(Nws, assay_len)
+
+        Nfs = Nps
+
+    Nfs = Nw_1
+    for stage_idx in range(ideal_strip_stage-1,-1,-1):
+        curr_stage = stage_idx - ideal_strip_stage
+        Fs = feed_flows[stage_idx]
+        n_mach_strip = round(machines_per_strip_stage(alpha, del_U, Fs))
+        Nps = N_product_by_alpha(alpha, Nfs)
+        Nws = N_waste_by_alpha(alpha, Nfs)
+        Ps = product_per_enr_stage(alpha, Nfs, Nps, Fs)
+        Ws = Fs - Ps
+        all_stages.insert(0,[(curr_stage), n_mach_strip, round(Fs, qty_len), 
+                             round(Ps, qty_len), round(Ws, qty_len),
+                             round(Nfs, assay_len), 
+                             round(Nps, assay_len), round(Nws, assay_len)])
+        n_centrifuges += n_mach_strip
+
+        if (verbose == True):
+            print (curr_stage), "\t",n_mach_strip ,"\t", round(Fs*fix,qty_len), "  ",round(Ps*fix, qty_len), "  ",round(Ws*fix, qty_len),"  ", round(Nfs, assay_len), "\t",round(Nps, assay_len),"\t", round(Nws, assay_len)
+        Nfs = Nws
+
+    return all_stages, n_centrifuges
