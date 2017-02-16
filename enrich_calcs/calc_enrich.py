@@ -263,16 +263,16 @@ def find_N_stages(alpha, feed_assay, product_assay, waste_assay):
 
     return ideal_enrich_stage, ideal_strip_stage
 
-def design_cascade(alpha, del_U, Nfc, Npc, Nwc, feed_flows,
-                      assay_len=4, qty_len=6, verbose=False, pretty=False):
-    ideal_enrich_stage, ideal_strip_stage = find_N_stages(alpha, Nfc, Npc, Nwc)
+def design_cascade(alpha, del_U, Nfc, feed_flows,
+                   ideal_enrich_stage, ideal_strip_stage,
+                   assay_len=4, qty_len=6, verbose=False, pretty=False):
 
+    print_len = qty_len
+    fix = 1 # all flows are same units as input feed_flows
     # For verbose only, make print statements in useful units
     if (pretty == True):
         fix = 30.4*24*60*60  # convert from kg/sec to kg/mon
-        qty_len = 2
-    else:
-        fix = 1 # all flows are same units as input feed_flows
+        print_len = 2
         
     if (verbose == True):
         print "Stage   #Mach\t Feed    Product  Waste\t F_assay \tP_assay W_assay"
@@ -297,7 +297,7 @@ def design_cascade(alpha, del_U, Nfc, Npc, Nwc, feed_flows,
             Nw_1 = Nws
 
         if (verbose == True):
-            print stage_idx, "\t", n_mach_enr,"\t", round(Fs*fix,qty_len), "  ",round(Ps*fix, qty_len), "  ",round(Ws*fix, qty_len),"  ", round(Nfs, assay_len), "\t",round(Nps, assay_len),"\t", round(Nws, assay_len)
+            print stage_idx, "\t", n_mach_enr,"\t", round(Fs*fix,print_len), "  ",round(Ps*fix, print_len), "  ",round(Ws*fix, print_len),"  ", round(Nfs, assay_len), "\t",round(Nps, assay_len),"\t", round(Nws, assay_len)
 
         Nfs = Nps
 
@@ -317,7 +317,7 @@ def design_cascade(alpha, del_U, Nfc, Npc, Nwc, feed_flows,
         n_centrifuges += n_mach_strip
 
         if (verbose == True):
-            print (curr_stage), "\t",n_mach_strip ,"\t", round(Fs*fix,qty_len), "  ",round(Ps*fix, qty_len), "  ",round(Ws*fix, qty_len),"  ", round(Nfs, assay_len), "\t",round(Nps, assay_len),"\t", round(Nws, assay_len)
+            print (curr_stage), "\t",n_mach_strip ,"\t", round(Fs*fix,print_len), "  ",round(Ps*fix, print_len), "  ",round(Ws*fix, print_len),"  ", round(Nfs, assay_len), "\t",round(Nps, assay_len),"\t", round(Nws, assay_len)
         Nfs = Nws
 
     return all_stages, n_centrifuges
