@@ -16,11 +16,11 @@ k = 2.0  # L/F ratio
 #Z = 1.0   # m
 #d = 0.15  # m 
 #F_m = 15e-6 # kg/s (paper is in mg/s)
-
+#r_12 = 0.746
 
 def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0, verbose=False):
     a = d/2.0 # outer radius
-    r_2 = 0.99*a  # fraction of a
+    r_2 = 0.96*a  # fraction of a
     
 
     # Intermediate calculations
@@ -38,7 +38,7 @@ def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0, verbose=False):
         print "r_12", r_12
 
     # Glaser eqn 3
-    C1 = (2.0*np.pi*D_rho/(np.log(r_2/r_1)))
+    C1 = (2.0*np.pi*(D_rho/M)/(np.log(r_2/r_1)))
     A_p = C1 *(1.0/F_m) * (cut/((1.0 + L_F)*(1.0 - cut + L_F)))
     A_w = C1 * (1.0/F_m) * ((1.0 - cut)/(L_F*(1.0 - cut + L_F)))
 
@@ -52,6 +52,7 @@ def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0, verbose=False):
     exp2 = np.exp(-1.0*A_w*(Z - Z_p))
 
     # Glaser eqn 10
+    # Efficiency applied to optimal del_U in Ratz p73 (pdf p21)
     major_term = 0.5*cut*(1.0 - cut)*(C_therm**2)*C_scale*(
                 (bracket1*(1 - exp1)) + (bracket2*(1 - exp2)))**2 # kg/s    
     del_U = F_m*major_term*eff #kg/s
@@ -59,13 +60,13 @@ def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0, verbose=False):
     per_sec2yr = 60*60*24*365.25 # s/m * m/hr * hr/d * d/y
 
     # Glaser eqn 6
-    dirac = 0.5*np.pi*Z*D_rho*C_therm*per_sec2yr  # kg/s
+    dirac = 0.5*np.pi*Z*(D_rho/M)*(C_therm**2)*per_sec2yr  # kg/s
     del_U_yr = del_U * per_sec2yr
 
     # Avery p.18
     alpha = alpha_by_swu(del_U, F_m, cut)
     
-    return alpha, del_U, del_U_yr  #kg/sec
+    return alpha, del_U, del_U_yr, dirac  #kg/sec
 
 # for a machine
 def calc_C_therm(v_a, T):
@@ -92,6 +93,7 @@ def alpha_by_enrich(Nf, Np):
     return alpha_enr
 
 # for a machine
+# ** IS C_therm supposed to be squared here?
 def alpha_max_theory(v_a, Z, d, T):
     # Avery p36
     # Max theoretical separation for zero withdrawal
