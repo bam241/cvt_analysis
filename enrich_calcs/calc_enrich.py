@@ -321,3 +321,24 @@ def design_cascade(alpha, del_U, Nfc, feed_flows,
         Nfs = Nws
 
     return all_stages, n_centrifuges
+
+
+
+class stage:
+    def __init__(self):
+        self.stage_number = 0
+        self.assay_length = 4
+        self.quantity_length = 6
+        self.feed_enrichement = 0.003
+        
+    def update(self, curr_stage, n_mach_strip, Fs, Ps, Ws, Nfs, Nps, Nws):
+        self.curr_stage   = curr_stage  
+        self.n_mach_strip = n_mach_strip
+        self.Fs           = Fs         
+        self.Ps           = Ps         
+        self.Ws           = Ws         
+        self.Nfs          = Nfs        
+        self.Nps          = Nps         
+        self.Nws          = Nws          
+    
+    #def round(self):
