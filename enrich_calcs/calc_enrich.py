@@ -249,7 +249,7 @@ def find_N_stages(alpha, feed_assay, product_assay, waste_assay):
     ideal_strip_stage = 0
     Nfs = feed_assay
     Nps = feed_assay
-    
+
     while (Nps < product_assay):
         Nps = N_product_by_alpha(alpha, Nfs)
         if (ideal_enrich_stage == 0):
