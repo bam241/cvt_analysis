@@ -111,6 +111,7 @@ def N_product_by_alpha(alpha, Nfm):
 
 # for a machine
 # Avery p.59
+# IN THE LIMIT WHERE ALPHA ->1
 def N_waste_by_alpha(alpha, Nfm):
     A = (Nfm/(1-Nfm))/alpha
     Nwm = A/(1+A)
@@ -161,7 +162,6 @@ def machines_per_enr_stage(alpha, del_U, Fs):
 def allowed_feed_per_stage(alpha, del_U, n_mach):
     max_feed = (n_mach*2*del_U)/((alpha - 1)**2)
     return max_feed
-
 
 def product_per_enr_stage(alpha, Nfs, Nps, Fs):
     epsilon = alpha - 1.0
@@ -265,7 +265,7 @@ def find_N_stages(alpha, feed_assay, product_assay, waste_assay):
 
     return ideal_enrich_stage, ideal_strip_stage
 
-def design_cascade(alpha, del_U, Nfc, feed_flows,
+def design_cascade(cut, alpha, del_U, Nfc, feed_flows,
                    ideal_enrich_stage, ideal_strip_stage,
                    assay_len=4, qty_len=6, verbose=False, pretty=False):
 
@@ -287,13 +287,13 @@ def design_cascade(alpha, del_U, Nfc, feed_flows,
         Fs = feed_flows[curr_stage]
         n_mach_enr = round(machines_per_enr_stage(alpha, del_U, Fs))
         Nps = N_product_by_alpha(alpha, Nfs)
-        Ps = product_per_enr_stage(alpha, Nfs, Nps, Fs)
+        Ps = Fs*cut
         Ws = Fs - Ps
         Nws = N_waste_by_alpha(alpha, Nfs)
-        all_stages.append([stage_idx, n_mach_enr, round(Fs, qty_len), 
-                           round(Ps, qty_len), round(Ws, qty_len),
-                           round(Nfs, assay_len), round(Nps, assay_len),
-                           round(Nws, assay_len)])
+        all_stages.append([stage_idx, n_mach_enr, Fs, 
+                           Ps, Ws,
+                           Nfs, Nps,
+                           Nws])
         n_centrifuges += n_mach_enr
         if (stage_idx == 0):
             Nw_1 = Nws
@@ -310,12 +310,12 @@ def design_cascade(alpha, del_U, Nfc, feed_flows,
         n_mach_strip = round(machines_per_strip_stage(alpha, del_U, Fs))
         Nps = N_product_by_alpha(alpha, Nfs)
         Nws = N_waste_by_alpha(alpha, Nfs)
-        Ps = product_per_enr_stage(alpha, Nfs, Nps, Fs)
+        Ps = Fs * cut
         Ws = Fs - Ps
-        all_stages.insert(0,[(curr_stage), n_mach_strip, round(Fs, qty_len), 
-                             round(Ps, qty_len), round(Ws, qty_len),
-                             round(Nfs, assay_len), 
-                             round(Nps, assay_len), round(Nws, assay_len)])
+        all_stages.insert(0,[(curr_stage), n_mach_strip, Fs,
+                             Ps, Ws,
+                             Nfs, 
+                             Nps, Nws])
         n_centrifuges += n_mach_strip
 
         if (verbose == True):
