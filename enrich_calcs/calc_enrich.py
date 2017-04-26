@@ -20,7 +20,7 @@ k = 2.0  # L/F ratio
 
 def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0, verbose=False):
     a = d/2.0 # outer radius
-    r_2 = 0.96*a  # fraction of a
+    r_2 = 0.99*a  # fraction of a
     
 
     # Intermediate calculations
@@ -38,7 +38,9 @@ def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0, verbose=False):
         print "r_12", r_12
 
     # Glaser eqn 3
-    C1 = (2.0*np.pi*(D_rho/M)/(np.log(r_2/r_1)))
+    # To make consistent with Raetz, but does this also need *M_atm?
+    #    C1 = (2.0*np.pi*(D_rho/M)/(np.log(r_2/r_1)))
+    C1 = (2.0*np.pi*(D_rho)/(np.log(r_2/r_1)))
     A_p = C1 *(1.0/F_m) * (cut/((1.0 + L_F)*(1.0 - cut + L_F)))
     A_w = C1 * (1.0/F_m) * ((1.0 - cut)/(L_F*(1.0 - cut + L_F)))
 
@@ -282,10 +284,13 @@ def design_cascade(cut, alpha, del_U, Nfc, feed_flows,
     n_centrifuges = 0
     Nfs = Nfc
     all_stages = []
+    Nw_1 = 0
     for stage_idx in range(ideal_enrich_stage):
         curr_stage = stage_idx + ideal_strip_stage
         Fs = feed_flows[curr_stage]
-        n_mach_enr = round(machines_per_enr_stage(alpha, del_U, Fs))
+        # Truncate to integer and then add 1 to ensure enough capacity
+        # to preserve steady-state flow rates input
+        n_mach_enr = int(machines_per_enr_stage(alpha, del_U, Fs)) + 1
         Nps = N_product_by_alpha(alpha, Nfs)
         Ps = Fs*cut
         Ws = Fs - Ps
@@ -299,7 +304,7 @@ def design_cascade(cut, alpha, del_U, Nfc, feed_flows,
             Nw_1 = Nws
 
         if (verbose == True):
-            print stage_idx, "\t", n_mach_enr,"\t", round(Fs*fix,print_len), "  ",round(Ps*fix, print_len), "  ",round(Ws*fix, print_len),"  ", round(Nfs, assay_len), "\t",round(Nps, assay_len),"\t", round(Nws, assay_len)
+             print stage_idx, "\t", n_mach_enr,"\t", round(Fs*fix,print_len), "  ",round(Ps*fix, print_len), "  ",round(Ws*fix, print_len),"  ", round(Nfs, assay_len), "\t",round(Nps, assay_len),"\t", round(Nws, assay_len)
 
         Nfs = Nps
 
@@ -307,7 +312,9 @@ def design_cascade(cut, alpha, del_U, Nfc, feed_flows,
     for stage_idx in range(ideal_strip_stage-1,-1,-1):
         curr_stage = stage_idx - ideal_strip_stage
         Fs = feed_flows[stage_idx]
-        n_mach_strip = round(machines_per_strip_stage(alpha, del_U, Fs))
+        # Truncate to integer and then add 1 to ensure enough capacity
+        # to preserve steady-state flow rates input
+        n_mach_strip = int (machines_per_strip_stage(alpha, del_U, Fs)) + 1
         Nps = N_product_by_alpha(alpha, Nfs)
         Nws = N_waste_by_alpha(alpha, Nfs)
         Ps = Fs * cut
