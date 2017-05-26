@@ -6,6 +6,7 @@ D_rho = 2.2e-5 # kg/ms
 R = 8.314 # J/K*mol
 dM = 0.003 #kg/mol
 M = 0.352 # kg/mol of UF6
+M_atm = 0.238 # atomic mass of natural uranium
 
 # Centrifuge assumptions
 x = 1000 # pressure ratio (Glaser)
@@ -20,7 +21,7 @@ k = 2.0  # L/F ratio
 
 def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0, verbose=False):
     a = d/2.0 # outer radius
-    r_2 = 0.99*a  # fraction of a
+    r_2 = 0.975*a  # fraction of a
     
 
     # Intermediate calculations
@@ -38,9 +39,9 @@ def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0, verbose=False):
         print "r_12", r_12
 
     # Glaser eqn 3
-    # To make consistent with Raetz, but does this also need *M_atm?
-    #    C1 = (2.0*np.pi*(D_rho/M)/(np.log(r_2/r_1)))
-    C1 = (2.0*np.pi*(D_rho)/(np.log(r_2/r_1)))
+    # To convert from gas to atom fraction, multiple by M_atm/M 
+    C1 = (2.0*np.pi*(D_rho*M_atm/M)/(np.log(r_2/r_1)))
+#    C1 = (2.0*np.pi*(D_rho)/(np.log(r_2/r_1)))
     A_p = C1 *(1.0/F_m) * (cut/((1.0 + L_F)*(1.0 - cut + L_F)))
     A_w = C1 * (1.0/F_m) * ((1.0 - cut)/(L_F*(1.0 - cut + L_F)))
 
@@ -62,7 +63,7 @@ def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0, verbose=False):
     per_sec2yr = 60*60*24*365.25 # s/m * m/hr * hr/d * d/y
 
     # Glaser eqn 6
-    dirac = 0.5*np.pi*Z*(D_rho/M)*(C_therm**2)*per_sec2yr  # kg/s
+    dirac = 0.5*np.pi*Z*(D_rho*M_atm/M)*(C_therm**2)*per_sec2yr  # kg/s
     del_U_yr = del_U * per_sec2yr
 
     # Avery p.18
